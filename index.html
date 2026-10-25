@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>四杆联动运动模拟 — ABCD 机构</title>
+  <title>Four-Bar Linkage Motion Simulation — ABCD Mechanism</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -23,7 +23,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "SF Pro Display", "Segoe UI", Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
@@ -35,27 +35,7 @@
       padding: 16px 24px;
       border-bottom: 1px solid var(--border);
       background: linear-gradient(180deg, #151c28 0%, var(--bg) 100%);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
     }
-
-    header .titles { flex: 1; }
-
-    .lang-switch {
-      font-size: 0.8rem;
-      color: var(--muted);
-      white-space: nowrap;
-      padding-top: 4px;
-    }
-
-    .lang-switch a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    .lang-switch a:hover { text-decoration: underline; }
 
     header h1 {
       font-size: 1.25rem;
@@ -250,96 +230,93 @@
 </head>
 <body>
   <header>
-    <div class="titles">
-      <h1>四杆联动运动模拟</h1>
-      <p>p3 滑动副驱动 · 旋转副 p1/r1 · 滑动副 p2 · 整体顺时针旋转 90°</p>
-    </div>
-    <div class="lang-switch"><a href="index-en.html">English</a></div>
+    <h1>Four-Bar Linkage Motion Simulation</h1>
+    <p>Driven by slider p3 · Revolute joints p1/r1 · Prismatic joints p2/p3 · View rotated 90° CW</p>
   </header>
 
   <main>
     <aside>
       <div class="section">
-        <h2>杆长参数 (mm)</h2>
+        <h2>Link Lengths (mm)</h2>
         <div class="field">
-          <label>杆 A 长度 <span class="value" id="val-a">200</span></label>
+          <label>Link A length <span class="value" id="val-a">200</span></label>
           <input type="range" id="len-a" min="80" max="320" value="200" step="1" />
         </div>
         <div class="field">
-          <label>杆 B 长度 <span class="value" id="val-b">160</span></label>
+          <label>Link B length <span class="value" id="val-b">160</span></label>
           <input type="range" id="len-b" min="60" max="280" value="160" step="1" />
         </div>
         <div class="field">
-          <label>杆 C 长度 <span class="value" id="val-c">80</span></label>
+          <label>Link C length <span class="value" id="val-c">80</span></label>
           <input type="range" id="len-c" min="30" max="180" value="80" step="1" />
         </div>
         <div class="field">
-          <label>杆 D 长度 <span class="value" id="val-d">100</span></label>
+          <label>Link D length <span class="value" id="val-d">100</span></label>
           <input type="range" id="len-d" min="30" max="180" value="100" step="1" />
         </div>
       </div>
 
       <div class="section">
-        <h2>驱动控制 — 滑动 p3</h2>
+        <h2>Drive — Slide p3</h2>
         <div class="field">
-          <label>p3 沿 A 杆位置 <span class="value" id="val-ta">40%</span></label>
+          <label>p3 position on A <span class="value" id="val-ta">40%</span></label>
           <input type="range" id="ta" min="0" max="100" value="40" step="0.5" />
         </div>
         <div class="field" style="opacity:0.75;">
-          <label>→ BA 夹角 <span class="value" id="val-ba">—</span></label>
+          <label>→ BA angle <span class="value" id="val-ba">—</span></label>
         </div>
         <div class="field" style="opacity:0.75;">
-          <label>→ 杆 B 方向 θ <span class="value" id="val-theta">—</span></label>
+          <label>→ Link B direction θ <span class="value" id="val-theta">—</span></label>
         </div>
         <div class="field" style="opacity:0.75;">
-          <label>→ p2 滑动副位置 <span class="value" id="val-tb">—</span></label>
+          <label>→ p2 slider position <span class="value" id="val-tb">—</span></label>
         </div>
         <div class="field" style="opacity:0.75;">
-          <label>→ r1 位置 <span class="value" id="val-r1">—</span></label>
+          <label>→ r1 position <span class="value" id="val-r1">—</span></label>
         </div>
       </div>
 
       <div class="section">
-        <h2>C-D 夹角限制 (°)</h2>
+        <h2>C–D Angle Limits (°)</h2>
         <div class="field">
-          <label>夹角下限 <span class="value" id="val-cd-min">0</span></label>
+          <label>Min angle <span class="value" id="val-cd-min">0</span></label>
           <input type="range" id="cd-min" min="0" max="180" value="0" step="1" />
         </div>
         <div class="field">
-          <label>夹角上限 <span class="value" id="val-cd-max">180</span></label>
+          <label>Max angle <span class="value" id="val-cd-max">180</span></label>
           <input type="range" id="cd-max" min="0" max="180" value="180" step="1" />
         </div>
         <div class="field" style="opacity:0.75;">
-          <label>→ 当前 C-D 夹角 <span class="value" id="val-cd-cur">—</span></label>
+          <label>→ Current C–D angle <span class="value" id="val-cd-cur">—</span></label>
         </div>
         <div class="btn-row" style="margin-top: 12px;">
-          <button class="primary" id="btn-play">▶ p3 往复动画</button>
-          <button id="btn-reset">重置</button>
+          <button class="primary" id="btn-play">▶ Animate p3</button>
+          <button id="btn-reset">Reset</button>
         </div>
       </div>
 
       <div class="section">
-        <h2>图例</h2>
+        <h2>Legend</h2>
         <div class="legend">
-          <div class="legend-item"><div class="legend-line" style="background:var(--rod-a)"></div> 定杆 A（固定）</div>
-          <div class="legend-item"><div class="legend-line" style="background:var(--rod-b)"></div> 旋转杆 B（限 A 上方）</div>
-          <div class="legend-item"><div class="legend-line" style="background:var(--rod-c)"></div> 短杆 C（恒垂直于 B）</div>
-          <div class="legend-item"><div class="legend-line" style="background:var(--rod-d)"></div> 短杆 D（恒垂直于 A）</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--joint)"></div> p1 旋转副（A-B）</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div> p2 滑动副（沿 B 杆）</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> p3 滑动副（沿 A 杆）— 主控</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> r1 旋转副（C-D，A 上方且 BA 之间）</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-a)"></div> Fixed link A</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-b)"></div> Rotating link B (above A)</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-c)"></div> Link C (always ⊥ B)</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-d)"></div> Link D (always ⊥ A)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--joint)"></div> p1 revolute (A–B)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div> p2 prismatic (on B)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> p3 prismatic (on A) — driver</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> r1 revolute (C–D, above A &amp; between BA)</div>
         </div>
       </div>
 
       <div class="section">
-        <div class="status ok" id="status">机构处于有效构型</div>
+        <div class="status ok" id="status">Valid configuration</div>
       </div>
     </aside>
 
     <div class="canvas-wrap">
       <canvas id="canvas"></canvas>
-      <div class="hint">拖动 p3 · C⊥B · D⊥A · BADC 凸四边形</div>
+      <div class="hint">Drag p3 · C⊥B · D⊥A · Convex BADC</div>
     </div>
   </main>
 
@@ -386,7 +363,7 @@
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // 顺时针旋转 90° 后：A 杆向下，B/C/D 在 A 右侧
+      // After 90° CW rotation: link A points down; B/C/D stay to the right of A
       state.origin = { x: w * 0.38, y: h * 0.16 };
       if (w !== bgSize.w || h !== bgSize.h) rebuildBackground(w, h, dpr);
     }
@@ -415,7 +392,7 @@
       bgSize = { w, h };
     }
 
-    // 世界坐标顺时针旋转 90°：(x,y) → (y,-x)，再映射到屏幕
+    // World coords rotated 90° CW: (x,y) → (y,-x), then mapped to screen
     function toScreen(p) {
       return {
         x: state.origin.x + p.y * state.scale,
@@ -682,7 +659,7 @@
         return;
       }
       const ba = getBAAngleDeg(state.theta);
-      const baLabel = ba.toFixed(1) + '°' + (ba > 90.5 ? ' 钝角' : '');
+      const baLabel = ba.toFixed(1) + '°' + (ba > 90.5 ? ' obtuse' : '');
       setText('val-ba', baLabel);
       let deg = (state.theta * 180) / Math.PI;
       if (deg < 0) deg += 360;
@@ -815,7 +792,7 @@
       const mid = start + diff / 2;
       const tx = sr.x + (arcR + 14) * Math.cos(mid);
       const ty = sr.y + (arcR + 14) * Math.sin(mid);
-      ctx.font = '600 11px PingFang SC, sans-serif';
+      ctx.font = '600 11px Segoe UI, sans-serif';
       ctx.fillStyle = '#fbbf24';
       ctx.textAlign = 'center';
       ctx.fillText(`${((cdAngle * 180) / Math.PI).toFixed(0)}°`, tx, ty + 4);
@@ -855,7 +832,7 @@
 
       ctx.restore();
 
-      ctx.font = '600 12px PingFang SC, sans-serif';
+      ctx.font = '600 12px Segoe UI, sans-serif';
       ctx.fillStyle = highlight ? '#fde68a' : '#e8edf4';
       ctx.textAlign = 'center';
       ctx.fillText(label, s.x, s.y - hh - 14);
@@ -886,7 +863,7 @@
         ctx.setLineDash([]);
       }
 
-      ctx.font = passive ? '500 11px PingFang SC, sans-serif' : '600 12px PingFang SC, sans-serif';
+      ctx.font = passive ? '500 11px Segoe UI, sans-serif' : '600 12px Segoe UI, sans-serif';
       ctx.fillStyle = passive ? '#8b9cb3' : '#e8edf4';
       ctx.textAlign = 'center';
       ctx.fillText(label, s.x, s.y - radius - (highlight ? 10 : 6));
@@ -916,7 +893,7 @@
       const aEnd = toScreen(getAEnd());
       const w = canvas.width / (window.devicePixelRatio || 1);
       const h = canvas.height / (window.devicePixelRatio || 1);
-      // 旋转后 A 向下，「A 上方」对应屏幕右侧
+      // After rotation A points down; "above A" is to the right on screen
       ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
@@ -970,7 +947,7 @@
 
       const midA = state.angleA + spanCCW * 0.5;
       const sm = toScreen({ x: p1.x + (r * 0.55) * Math.cos(midA), y: p1.y + (r * 0.55) * Math.sin(midA) });
-      ctx.font = '600 11px PingFang SC, sans-serif';
+      ctx.font = '600 11px Segoe UI, sans-serif';
       ctx.fillStyle = '#c4b5fd';
       ctx.textAlign = 'center';
       ctx.fillText(`BA ${getBAAngleDeg(theta).toFixed(0)}°`, sm.x, sm.y + 4);
@@ -998,7 +975,7 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      ctx.font = '600 10px PingFang SC, sans-serif';
+      ctx.font = '600 10px Segoe UI, sans-serif';
       ctx.fillStyle = '#93c5fd';
       ctx.textAlign = 'center';
       screens.forEach(({ s, label }) => {
@@ -1034,23 +1011,23 @@
         const cdDeg = ((state.currentCdAngle * 180) / Math.PI).toFixed(1);
         const ba = getBAAngleDeg(state.theta);
         statusEl.textContent =
-          `有效构型 · BA=${ba.toFixed(0)}° · C⊥B · D⊥A · BADC 凸 · C-D=${cdDeg}°`;
+          `Valid · BA=${ba.toFixed(0)}° · C⊥B · D⊥A · Convex BADC · C–D=${cdDeg}°`;
       } else if (state.failReason === 'angle') {
         statusEl.className = 'status err';
         statusEl.textContent =
-          `无效构型：C-D 夹角不在 ${state.cdAngleMin}°–${state.cdAngleMax}° 范围内，请放宽夹角或调整 p3/杆长`;
+          `Invalid: C–D angle not in ${state.cdAngleMin}°–${state.cdAngleMax}°. Relax limits or adjust p3 / lengths.`;
       } else if (state.failReason === 'convex') {
         statusEl.className = 'status err';
-        statusEl.textContent = '无效构型：BADC 四边形非凸，请调整 p3 位置或杆长';
+        statusEl.textContent = 'Invalid: BADC is not convex. Adjust p3 or link lengths.';
       } else if (state.failReason === 'between') {
         statusEl.className = 'status err';
-        statusEl.textContent = '无效构型：r1 须位于 A 杆与 B 杆之间，请调整 p3 位置或杆长';
+        statusEl.textContent = 'Invalid: r1 must lie between links A and B. Adjust p3 or lengths.';
       } else if (state.failReason === 'above') {
         statusEl.className = 'status err';
-        statusEl.textContent = '无效构型：B/C/D/r1 须均在 A 杆上方，请调整 p3 位置或杆长';
+        statusEl.textContent = 'Invalid: B/C/D/r1 must stay above A. Adjust p3 or lengths.';
       } else {
         statusEl.className = 'status err';
-        statusEl.textContent = '无效构型：C⊥B、D⊥A 无法同时满足，请调整 p3 位置或杆长';
+        statusEl.textContent = 'Invalid: C⊥B and D⊥A cannot be satisfied. Adjust p3 or lengths.';
       }
 
       drawFixedSymbol(p1);
@@ -1096,7 +1073,7 @@
       }
       if (state.valid) drawJoint(bEnd, '', '#10b981', 6);
 
-      ctx.font = '500 11px PingFang SC, sans-serif';
+      ctx.font = '500 11px Segoe UI, sans-serif';
       ctx.fillStyle = '#8b9cb3';
       ctx.textAlign = 'left';
       const sa = toScreen(aEnd);
@@ -1156,7 +1133,7 @@
 
       document.getElementById('btn-play').addEventListener('click', () => {
         state.playing = !state.playing;
-        document.getElementById('btn-play').textContent = state.playing ? '⏸ 暂停' : '▶ p3 往复动画';
+        document.getElementById('btn-play').textContent = state.playing ? '⏸ Pause' : '▶ Animate p3';
         document.getElementById('btn-play').classList.toggle('primary', !state.playing);
         if (state.playing) {
           loopLast = performance.now();
@@ -1179,7 +1156,7 @@
         document.getElementById('val-b').textContent = '160';
         document.getElementById('val-c').textContent = '80';
         document.getElementById('val-d').textContent = '100';
-        document.getElementById('btn-play').textContent = '▶ p3 往复动画';
+        document.getElementById('btn-play').textContent = '▶ Animate p3';
         document.getElementById('btn-play').classList.add('primary');
         syncCdSliders();
         applyP3ControlNow(state.tA);
