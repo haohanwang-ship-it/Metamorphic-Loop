@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Four-Bar Linkage Motion Simulation — ABCD Mechanism</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4f;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3b82f6;
+      --rod-a: #f59e0b;
+      --rod-b: #10b981;
+      --rod-c: #8b5cf6;
+      --rod-d: #ec4899;
+      --joint: #ef4444;
+      --fixed: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "SF Pro Display", "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #151c28 0%, var(--bg) 100%);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    header .titles { flex: 1; }
+
+    .lang-switch {
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+      padding-top: 4px;
+    }
+
+    .lang-switch a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .lang-switch a:hover { text-decoration: underline; }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    header p {
+      margin-top: 4px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 0;
+      min-height: 0;
+    }
+
+    aside {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section h2 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.875rem;
+      margin-bottom: 6px;
+    }
+
+    .field label span.value {
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .field input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .field input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.875rem;
+    }
+
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-line {
+      width: 24px;
+      height: 3px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      flex: 1;
+      min-width: 100px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      background: #243044;
+      border-color: var(--accent);
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button.primary:hover {
+      background: #2563eb;
+    }
+
+    .status {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .status.ok {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    .status.err {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    canvas {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 35, 50, 0.92);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="titles">
+      <h1>Four-Bar Linkage Motion Simulation</h1>
+      <p>Driven by slider p3 · Revolute joints p1/r1 · Prismatic joints p2/p3 · View rotated 90° CW</p>
+    </div>
+    <div class="lang-switch"><a href="index.html">中文</a></div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="section">
+        <h2>Link Lengths (mm)</h2>
+        <div class="field">
+          <label>Link A length <span class="value" id="val-a">200</span></label>
+          <input type="range" id="len-a" min="80" max="320" value="200" step="1" />
+        </div>
+        <div class="field">
+          <label>Link B length <span class="value" id="val-b">160</span></label>
+          <input type="range" id="len-b" min="60" max="280" value="160" step="1" />
+        </div>
+        <div class="field">
+          <label>Link C length <span class="value" id="val-c">80</span></label>
+          <input type="range" id="len-c" min="30" max="180" value="80" step="1" />
+        </div>
+        <div class="field">
+          <label>Link D length <span class="value" id="val-d">100</span></label>
+          <input type="range" id="len-d" min="30" max="180" value="100" step="1" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Drive — Slide p3</h2>
+        <div class="field">
+          <label>p3 position on A <span class="value" id="val-ta">40%</span></label>
+          <input type="range" id="ta" min="0" max="100" value="40" step="0.5" />
+        </div>
+        <div class="field" style="opacity:0.75;">
+          <label>→ BA angle <span class="value" id="val-ba">—</span></label>
+        </div>
+        <div class="field" style="opacity:0.75;">
+          <label>→ Link B direction θ <span class="value" id="val-theta">—</span></label>
+        </div>
+        <div class="field" style="opacity:0.75;">
+          <label>→ p2 slider position <span class="value" id="val-tb">—</span></label>
+        </div>
+        <div class="field" style="opacity:0.75;">
+          <label>→ r1 position <span class="value" id="val-r1">—</span></label>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>C–D Angle Limits (°)</h2>
+        <div class="field">
+          <label>Min angle <span class="value" id="val-cd-min">0</span></label>
+          <input type="range" id="cd-min" min="0" max="180" value="0" step="1" />
+        </div>
+        <div class="field">
+          <label>Max angle <span class="value" id="val-cd-max">180</span></label>
+          <input type="range" id="cd-max" min="0" max="180" value="180" step="1" />
+        </div>
+        <div class="field" style="opacity:0.75;">
+          <label>→ Current C–D angle <span class="value" id="val-cd-cur">—</span></label>
+        </div>
+        <div class="btn-row" style="margin-top: 12px;">
+          <button class="primary" id="btn-play">▶ Animate p3</button>
+          <button id="btn-reset">Reset</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Legend</h2>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-a)"></div> Fixed link A</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-b)"></div> Rotating link B (above A)</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-c)"></div> Link C (always ⊥ B)</div>
+          <div class="legend-item"><div class="legend-line" style="background:var(--rod-d)"></div> Link D (always ⊥ A)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--joint)"></div> p1 revolute (A–B)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div> p2 prismatic (on B)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div> p3 prismatic (on A) — driver</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> r1 revolute (C–D, above A &amp; between BA)</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="status ok" id="status">Valid configuration</div>
+      </div>
+    </aside>
+
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+      <div class="hint">Drag p3 · C⊥B · D⊥A · Convex BADC</div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const state = {
+      lenA: 200,
+      lenB: 160,
+      lenC: 80,
+      lenD: 100,
+      theta: Math.PI / 4,
+      tA: 0.4,
+      tB: 0.5,
+      r1: { x: 150, y: 80 },
+      valid: true,
+      playing: false,
+      origin: { x: 0, y: 0 },
+      scale: 2.2,
+      angleA: 0,
+      cdAngleMin: 0,
+      cdAngleMax: 180,
+      currentCdAngle: null,
+      failReason: null,
+      drag: null,
+      animT: 0
+    };
+
+    const FIXED = { x: 0, y: 0 };
+    let bgLayer = null;
+    let bgSize = { w: 0, h: 0 };
+    let pendingTA = null;
+    let frameQueued = false;
+    let loopLast = 0;
+
+    function resize() {
+      const wrap = canvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // After 90° CW rotation: link A points down; B/C/D stay to the right of A
+      state.origin = { x: w * 0.38, y: h * 0.16 };
+      if (w !== bgSize.w || h !== bgSize.h) rebuildBackground(w, h, dpr);
+    }
+
+    function rebuildBackground(w, h, dpr) {
+      if (!bgLayer) bgLayer = document.createElement('canvas');
+      bgLayer.width = w * dpr;
+      bgLayer.height = h * dpr;
+      const bctx = bgLayer.getContext('2d');
+      bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      bctx.strokeStyle = 'rgba(45, 58, 79, 0.45)';
+      bctx.lineWidth = 1;
+      const step = 40;
+      for (let x = 0; x < w; x += step) {
+        bctx.beginPath();
+        bctx.moveTo(x, 0);
+        bctx.lineTo(x, h);
+        bctx.stroke();
+      }
+      for (let y = 0; y < h; y += step) {
+        bctx.beginPath();
+        bctx.moveTo(0, y);
+        bctx.lineTo(w, y);
+        bctx.stroke();
+      }
+      bgSize = { w, h };
+    }
+
+    // World coords rotated 90° CW: (x,y) → (y,-x), then mapped to screen
+    function toScreen(p) {
+      return {
+        x: state.origin.x + p.y * state.scale,
+        y: state.origin.y + p.x * state.scale
+      };
+    }
+
+    function toWorld(s) {
+      return {
+        x: (s.y - state.origin.y) / state.scale,
+        y: (s.x - state.origin.x) / state.scale
+      };
+    }
+
+    function getP1() {
+      return { ...FIXED };
+    }
+
+    function getAEnd() {
+      return {
+        x: FIXED.x + state.lenA * Math.cos(state.angleA),
+        y: FIXED.y + state.lenA * Math.sin(state.angleA)
+      };
+    }
+
+    function getP3() {
+      return {
+        x: FIXED.x + state.tA * state.lenA * Math.cos(state.angleA),
+        y: FIXED.y + state.tA * state.lenA * Math.sin(state.angleA)
+      };
+    }
+
+    function getBEnd() {
+      return {
+        x: FIXED.x + state.lenB * Math.cos(state.theta),
+        y: FIXED.y + state.lenB * Math.sin(state.theta)
+      };
+    }
+
+    function getP2() {
+      return {
+        x: FIXED.x + state.tB * state.lenB * Math.cos(state.theta),
+        y: FIXED.y + state.tB * state.lenB * Math.sin(state.theta)
+      };
+    }
+
+    function dist(a, b) {
+      return Math.hypot(b.x - a.x, b.y - a.y);
+    }
+
+    function angleDiff(a, b) {
+      let d = Math.abs(a - b) % (Math.PI * 2);
+      return Math.min(d, Math.PI * 2 - d);
+    }
+
+    function getAngleCD(p2, p3, r1) {
+      const vC = { x: p2.x - r1.x, y: p2.y - r1.y };
+      const vD = { x: p3.x - r1.x, y: p3.y - r1.y };
+      const mC = Math.hypot(vC.x, vC.y);
+      const mD = Math.hypot(vD.x, vD.y);
+      if (mC < 1e-9 || mD < 1e-9) return 0;
+      const cos = Math.max(-1, Math.min(1, (vC.x * vD.x + vC.y * vD.y) / (mC * mD)));
+      return Math.acos(cos);
+    }
+
+    function cdAngleInRange(rad) {
+      const deg = (rad * 180) / Math.PI;
+      return deg >= state.cdAngleMin - 1e-6 && deg <= state.cdAngleMax + 1e-6;
+    }
+
+    function isPointAboveA(p) {
+      const p1 = getP1();
+      const aEnd = getAEnd();
+      const ax = aEnd.x - p1.x;
+      const ay = aEnd.y - p1.y;
+      const cross = ax * (p.y - p1.y) - ay * (p.x - p1.x);
+      return cross > 1e-6;
+    }
+
+    function isBCDAboveA(p2, r1, theta) {
+      const bEnd = {
+        x: FIXED.x + state.lenB * Math.cos(theta),
+        y: FIXED.y + state.lenB * Math.sin(theta)
+      };
+      return isPointAboveA(p2) && isPointAboveA(bEnd) && isPointAboveA(r1);
+    }
+
+    function ccwSpan(from, to) {
+      let s = to - from;
+      while (s < 0) s += Math.PI * 2;
+      while (s >= Math.PI * 2) s -= Math.PI * 2;
+      return s;
+    }
+
+    function getBAAngleRad(theta) {
+      const span = ccwSpan(state.angleA, theta);
+      return span > Math.PI ? Math.PI * 2 - span : span;
+    }
+
+    function getBAAngleDeg(theta) {
+      return (getBAAngleRad(theta) * 180) / Math.PI;
+    }
+
+    function isR1BetweenBA(r1, theta) {
+      const angR = Math.atan2(r1.y - FIXED.y, r1.x - FIXED.x);
+      if (Math.hypot(r1.x - FIXED.x, r1.y - FIXED.y) < 1e-6) return false;
+      const spanAB = ccwSpan(state.angleA, theta);
+      const spanAr = ccwSpan(state.angleA, angR);
+      if (spanAB <= Math.PI + 1e-6) {
+        return spanAr > 1e-6 && spanAr < spanAB - 1e-6;
+      }
+      return spanAr > spanAB + 1e-6;
+    }
+
+    function cross2d(o, a, b) {
+      return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    }
+
+    function isConvexPolygon(pts) {
+      const n = pts.length;
+      if (n < 3) return false;
+      let sign = 0;
+      for (let i = 0; i < n; i++) {
+        const c = cross2d(pts[i], pts[(i + 1) % n], pts[(i + 2) % n]);
+        if (Math.abs(c) < 1e-4) continue;
+        const s = c > 0 ? 1 : -1;
+        if (sign === 0) sign = s;
+        else if (sign !== s) return false;
+      }
+      return sign !== 0;
+    }
+
+    // BADC 四边形：B=p2, A=p1, D=p3, C=r1（沿 B→A→D→C 闭合）
+    function isBADCConvex(p2, p1, p3, r1) {
+      return isConvexPolygon([p2, p1, p3, r1]);
+    }
+
+    function rodDir(angle) {
+      return { x: Math.cos(angle), y: Math.sin(angle) };
+    }
+
+    function perpDir(v) {
+      return { x: -v.y, y: v.x };
+    }
+
+    function isPerpendicular(v, axis, eps = 1e-2) {
+      return Math.abs(v.x * axis.x + v.y * axis.y) < eps;
+    }
+
+    function candidatesFromPerpendicular(p3) {
+      const nA = perpDir(rodDir(state.angleA));
+      const list = [];
+
+      for (const sd of [-1, 1]) {
+        const r1 = {
+          x: p3.x + sd * state.lenD * nA.x,
+          y: p3.y + sd * state.lenD * nA.y
+        };
+        const R = Math.hypot(r1.x, r1.y);
+        if (R < 1e-6) continue;
+        const phi = Math.atan2(r1.y, r1.x);
+
+        for (const sc of [-1, 1]) {
+          const s = (-sc * state.lenC) / R;
+          if (Math.abs(s) > 1 + 1e-6) continue;
+          const core = Math.asin(Math.max(-1, Math.min(1, s)));
+          for (const da of [core, Math.PI - core]) {
+            const theta = phi + da;
+            const dirB = rodDir(theta);
+            const nB = perpDir(dirB);
+            const p2 = {
+              x: r1.x - sc * state.lenC * nB.x,
+              y: r1.y - sc * state.lenC * nB.y
+            };
+            const tB = (p2.x * dirB.x + p2.y * dirB.y) / state.lenB;
+            if (tB < -1e-6 || tB > 1 + 1e-6) continue;
+            const p2onB = { x: tB * state.lenB * dirB.x, y: tB * state.lenB * dirB.y };
+            if (dist(p2, p2onB) > 0.05) continue;
+            list.push({ theta, tB, r1, p2 });
+          }
+        }
+      }
+      return list;
+    }
+
+    function solveFromP3(tA) {
+      const p3 = {
+        x: FIXED.x + tA * state.lenA * Math.cos(state.angleA),
+        y: FIXED.y + tA * state.lenA * Math.sin(state.angleA)
+      };
+      const prevTheta = state.theta;
+      const prevTB = state.tB;
+      const prevR1 = state.r1;
+
+      let best = null;
+      let bestScore = Infinity;
+      let hasAny = false;
+      let hasAngleOk = false;
+      let hasAboveOk = false;
+      let hasBetweenOk = false;
+      let hasConvexOk = false;
+
+      const candidates = candidatesFromPerpendicular(p3);
+      if (candidates.length) hasAny = true;
+
+      for (const { theta, tB, r1, p2 } of candidates) {
+        const cdAngle = getAngleCD(p2, p3, r1);
+        if (!cdAngleInRange(cdAngle)) continue;
+        hasAngleOk = true;
+        if (!isBCDAboveA(p2, r1, theta)) continue;
+        hasAboveOk = true;
+        if (!isR1BetweenBA(r1, theta)) continue;
+        hasBetweenOk = true;
+        if (!isBADCConvex(p2, FIXED, p3, r1)) continue;
+        hasConvexOk = true;
+
+        const score =
+          angleDiff(theta, prevTheta) * 3 +
+          Math.abs(tB - prevTB) * 2 +
+          (prevR1 && isPointAboveA(prevR1) ? dist(r1, prevR1) * 0.005 : 0);
+        if (score < bestScore) {
+          bestScore = score;
+          best = { theta, tB, tA, r1, cdAngle };
+        }
+      }
+
+      if (!best) {
+        if (hasAny && hasAngleOk && hasAboveOk && hasBetweenOk && !hasConvexOk) state.failReason = 'convex';
+        else if (hasAny && hasAngleOk && hasAboveOk && !hasBetweenOk) state.failReason = 'between';
+        else if (hasAny && hasAngleOk && !hasAboveOk) state.failReason = 'above';
+        else if (hasAny && !hasAngleOk) state.failReason = 'angle';
+        else state.failReason = 'closure';
+        return false;
+      }
+
+      state.tA = best.tA;
+      state.theta = best.theta;
+      state.tB = best.tB;
+      state.r1 = { x: best.r1.x, y: best.r1.y };
+      state.currentCdAngle = best.cdAngle;
+      state.failReason = null;
+      state.valid = true;
+      return true;
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el.textContent !== text) el.textContent = text;
+    }
+
+    function syncTASlider() {
+      const v = (state.tA * 100).toFixed(1);
+      document.getElementById('ta').value = v;
+      setText('val-ta', (state.tA * 100).toFixed(0) + '%');
+    }
+
+    function syncDerivedLabels() {
+      if (!state.valid) {
+        setText('val-ba', '—');
+        setText('val-theta', '—');
+        setText('val-tb', '—');
+        setText('val-r1', '—');
+        setText('val-cd-cur', '—');
+        return;
+      }
+      const ba = getBAAngleDeg(state.theta);
+      const baLabel = ba.toFixed(1) + '°' + (ba > 90.5 ? ' obtuse' : '');
+      setText('val-ba', baLabel);
+      let deg = (state.theta * 180) / Math.PI;
+      if (deg < 0) deg += 360;
+      setText('val-theta', deg.toFixed(1) + '°');
+      setText('val-tb', (state.tB * 100).toFixed(0) + '%');
+      setText('val-r1', `(${state.r1.x.toFixed(0)}, ${state.r1.y.toFixed(0)})`);
+      setText('val-cd-cur', state.currentCdAngle != null
+        ? ((state.currentCdAngle * 180) / Math.PI).toFixed(1) + '°'
+        : '—');
+    }
+
+    function syncCdSliders() {
+      document.getElementById('cd-min').value = state.cdAngleMin;
+      document.getElementById('cd-max').value = state.cdAngleMax;
+      document.getElementById('val-cd-min').textContent = state.cdAngleMin.toFixed(0);
+      document.getElementById('val-cd-max').textContent = state.cdAngleMax.toFixed(0);
+    }
+
+    function projectOnSegment(a, b, p) {
+      const abx = b.x - a.x;
+      const aby = b.y - a.y;
+      const len2 = abx * abx + aby * aby;
+      if (len2 < 1e-12) return { t: 0, point: { ...a } };
+      let t = ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2;
+      t = Math.max(0, Math.min(1, t));
+      return {
+        t,
+        point: { x: a.x + t * abx, y: a.y + t * aby }
+      };
+    }
+
+    function applyP3Control(tA) {
+      pendingTA = tA;
+      queueFrame();
+    }
+
+    function applyP3ControlNow(tA) {
+      const ok = solveFromP3(tA);
+      if (!ok) {
+        state.tA = tA;
+        state.valid = false;
+      }
+      syncTASlider();
+      syncDerivedLabels();
+      draw();
+    }
+
+    function queueFrame() {
+      if (frameQueued) return;
+      frameQueued = true;
+      requestAnimationFrame(runFrame);
+    }
+
+    function runFrame(time) {
+      frameQueued = false;
+      if (state.playing) {
+        const dt = Math.min((time - loopLast) / 1000, 0.05);
+        loopLast = time;
+        state.animT += dt * 0.45;
+        pendingTA = 0.12 + 0.38 * (0.5 + 0.5 * Math.sin(state.animT));
+      } else {
+        loopLast = time;
+      }
+      if (pendingTA !== null) {
+        const tA = pendingTA;
+        pendingTA = null;
+        applyP3ControlNow(tA);
+      }
+      if (state.playing) queueFrame();
+    }
+
+    function initMechanism() {
+      syncCdSliders();
+      applyP3ControlNow(state.tA);
+    }
+
+    function drawRod(p1, p2, color, width = 5) {
+      const s1 = toScreen(p1);
+      const s2 = toScreen(p2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y);
+      ctx.lineTo(s2.x, s2.y);
+      ctx.stroke();
+    }
+
+    function drawRightAngle(vertex, dir1, dir2, size = 11) {
+      const sv = toScreen(vertex);
+      const n1 = Math.hypot(dir1.x, dir1.y) || 1;
+      const n2 = Math.hypot(dir2.x, dir2.y) || 1;
+      const u1 = { x: dir1.x / n1, y: dir1.y / n1 };
+      const u2 = { x: dir2.x / n2, y: dir2.y / n2 };
+      const p1w = { x: vertex.x + u1.x * size, y: vertex.y + u1.y * size };
+      const p2w = { x: vertex.x + u2.x * size, y: vertex.y + u2.y * size };
+      const pmw = { x: p1w.x + u2.x * size, y: p1w.y + u2.y * size };
+      const s1 = toScreen(p1w);
+      const s2 = toScreen(p2w);
+      const sm = toScreen(pmw);
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(s1.x, s1.y);
+      ctx.lineTo(sm.x, sm.y);
+      ctx.lineTo(s2.x, s2.y);
+      ctx.stroke();
+    }
+
+    function drawAngleArc(p2, p3, r1, cdAngle) {
+      const sr = toScreen(r1);
+      const sp2 = toScreen(p2);
+      const sp3 = toScreen(p3);
+      const aC = Math.atan2(sr.y - sp2.y, sp2.x - sr.x);
+      const aD = Math.atan2(sr.y - sp3.y, sp3.x - sr.x);
+      const arcR = 24;
+      let start = aC;
+      let end = aD;
+      let diff = end - start;
+      while (diff <= -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      end = start + diff;
+
+      ctx.beginPath();
+      ctx.arc(sr.x, sr.y, arcR, start, end, diff < 0);
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const mid = start + diff / 2;
+      const tx = sr.x + (arcR + 14) * Math.cos(mid);
+      const ty = sr.y + (arcR + 14) * Math.sin(mid);
+      ctx.font = '600 11px Segoe UI, sans-serif';
+      ctx.fillStyle = '#fbbf24';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${((cdAngle * 180) / Math.PI).toFixed(0)}°`, tx, ty + 4);
+    }
+
+    function drawSliderJoint(p, rodStart, rodEnd, label, fill, highlight = false) {
+      const s = toScreen(p);
+      const sr0 = toScreen(rodStart);
+      const sr1 = toScreen(rodEnd);
+      const ang = Math.atan2(sr1.y - sr0.y, sr1.x - sr0.x);
+      const hw = 11;
+      const hh = 5;
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(ang);
+
+      if (highlight) {
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+        ctx.fillRect(-hw - 3, -hh - 7, (hw + 3) * 2, (hh + 7) * 2);
+      }
+
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = highlight ? '#fde68a' : '#fff';
+      ctx.lineWidth = highlight ? 2.5 : 2;
+      ctx.fillRect(-hw, -hh, hw * 2, hh * 2);
+      ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-hw - 5, -hh - 3);
+      ctx.lineTo(hw + 5, -hh - 3);
+      ctx.moveTo(-hw - 5, hh + 3);
+      ctx.lineTo(hw + 5, hh + 3);
+      ctx.stroke();
+
+      ctx.restore();
+
+      ctx.font = '600 12px Segoe UI, sans-serif';
+      ctx.fillStyle = highlight ? '#fde68a' : '#e8edf4';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, s.x, s.y - hh - 14);
+    }
+
+    function drawJoint(p, label, fill, radius = 9, highlight = false, passive = false) {
+      const s = toScreen(p);
+      if (highlight) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, radius + 8, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(167, 139, 250, 0.25)';
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = highlight ? '#c4b5fd' : (passive ? 'rgba(255,255,255,0.45)' : '#fff');
+      ctx.lineWidth = highlight ? 3 : 2;
+      ctx.stroke();
+
+      if (passive) {
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, radius + 4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.35)';
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      ctx.font = passive ? '500 11px Segoe UI, sans-serif' : '600 12px Segoe UI, sans-serif';
+      ctx.fillStyle = passive ? '#8b9cb3' : '#e8edf4';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, s.x, s.y - radius - (highlight ? 10 : 6));
+    }
+
+    function drawFixedSymbol(p) {
+      const s = toScreen(p);
+      ctx.strokeStyle = varFixed();
+      ctx.lineWidth = 2;
+      const w = 14;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(s.x - w + i * 5, s.y - 18);
+        ctx.lineTo(s.x - w + i * 5, s.y - 8);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - w, s.y);
+      ctx.stroke();
+    }
+
+    function varFixed() { return '#64748b'; }
+
+    function drawAllowedRegion() {
+      const p1 = toScreen(getP1());
+      const aEnd = toScreen(getAEnd());
+      const w = canvas.width / (window.devicePixelRatio || 1);
+      const h = canvas.height / (window.devicePixelRatio || 1);
+      // After rotation A points down; "above A" is to the right on screen
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(aEnd.x, aEnd.y);
+      ctx.lineTo(w, aEnd.y);
+      ctx.lineTo(w, p1.y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.setLineDash([4, 6]);
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(aEnd.x, Math.min(h, aEnd.y + 200));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawBASector(theta) {
+      const p1 = getP1();
+      const sp1 = toScreen(p1);
+      const r = 280;
+      const spanCCW = ccwSpan(state.angleA, theta);
+      const spanDraw = spanCCW <= Math.PI ? spanCCW : Math.PI * 2 - spanCCW;
+      const steps = Math.max(12, Math.ceil(spanDraw * 20));
+
+      ctx.fillStyle = 'rgba(167, 139, 250, 0.1)';
+      ctx.beginPath();
+      ctx.moveTo(sp1.x, sp1.y);
+      for (let i = 0; i <= steps; i++) {
+        const a = state.angleA + (spanCCW * i) / steps;
+        const s = toScreen({ x: p1.x + r * Math.cos(a), y: p1.y + r * Math.sin(a) });
+        ctx.lineTo(s.x, s.y);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(167, 139, 250, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 5]);
+      ctx.beginPath();
+      ctx.moveTo(sp1.x, sp1.y);
+      const sA = toScreen({ x: p1.x + r * Math.cos(state.angleA), y: p1.y + r * Math.sin(state.angleA) });
+      ctx.lineTo(sA.x, sA.y);
+      ctx.moveTo(sp1.x, sp1.y);
+      const sB = toScreen({ x: p1.x + r * Math.cos(theta), y: p1.y + r * Math.sin(theta) });
+      ctx.lineTo(sB.x, sB.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const midA = state.angleA + spanCCW * 0.5;
+      const sm = toScreen({ x: p1.x + (r * 0.55) * Math.cos(midA), y: p1.y + (r * 0.55) * Math.sin(midA) });
+      ctx.font = '600 11px Segoe UI, sans-serif';
+      ctx.fillStyle = '#c4b5fd';
+      ctx.textAlign = 'center';
+      ctx.fillText(`BA ${getBAAngleDeg(theta).toFixed(0)}°`, sm.x, sm.y + 4);
+    }
+
+    function drawBADCOutline(p2, p1, p3, r1) {
+      const order = [
+        { p: p2, label: 'B' },
+        { p: p1, label: 'A' },
+        { p: p3, label: 'D' },
+        { p: r1, label: 'C' }
+      ];
+      const screens = order.map(v => ({ ...v, s: toScreen(v.p) }));
+
+      ctx.fillStyle = 'rgba(59, 130, 246, 0.07)';
+      ctx.beginPath();
+      ctx.moveTo(screens[0].s.x, screens[0].s.y);
+      for (let i = 1; i < screens.length; i++) ctx.lineTo(screens[i].s.x, screens[i].s.y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = '600 10px Segoe UI, sans-serif';
+      ctx.fillStyle = '#93c5fd';
+      ctx.textAlign = 'center';
+      screens.forEach(({ s, label }) => {
+        ctx.fillText(label, s.x + 12, s.y - 10);
+      });
+    }
+
+    function drawGrid() {
+      if (bgLayer) {
+        const w = canvas.width / (window.devicePixelRatio || 1);
+        const h = canvas.height / (window.devicePixelRatio || 1);
+        ctx.drawImage(bgLayer, 0, 0, w, h);
+      }
+    }
+
+    function draw() {
+      const w = canvas.width / (window.devicePixelRatio || 1);
+      const h = canvas.height / (window.devicePixelRatio || 1);
+      ctx.clearRect(0, 0, w, h);
+      drawGrid();
+      drawAllowedRegion();
+
+      const p1 = getP1();
+      const aEnd = getAEnd();
+      const bEnd = getBEnd();
+      const p2 = getP2();
+      const p3 = getP3();
+      const r1 = state.r1;
+
+      const statusEl = document.getElementById('status');
+      if (state.valid) {
+        statusEl.className = 'status ok';
+        const cdDeg = ((state.currentCdAngle * 180) / Math.PI).toFixed(1);
+        const ba = getBAAngleDeg(state.theta);
+        statusEl.textContent =
+          `Valid · BA=${ba.toFixed(0)}° · C⊥B · D⊥A · Convex BADC · C–D=${cdDeg}°`;
+      } else if (state.failReason === 'angle') {
+        statusEl.className = 'status err';
+        statusEl.textContent =
+          `Invalid: C–D angle not in ${state.cdAngleMin}°–${state.cdAngleMax}°. Relax limits or adjust p3 / lengths.`;
+      } else if (state.failReason === 'convex') {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Invalid: BADC is not convex. Adjust p3 or link lengths.';
+      } else if (state.failReason === 'between') {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Invalid: r1 must lie between links A and B. Adjust p3 or lengths.';
+      } else if (state.failReason === 'above') {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Invalid: B/C/D/r1 must stay above A. Adjust p3 or lengths.';
+      } else {
+        statusEl.className = 'status err';
+        statusEl.textContent = 'Invalid: C⊥B and D⊥A cannot be satisfied. Adjust p3 or lengths.';
+      }
+
+      drawFixedSymbol(p1);
+
+      if (state.valid) drawBASector(state.theta);
+
+      drawRod(p1, aEnd, '#f59e0b', 7);
+      drawRod(p1, bEnd, '#10b981', 6);
+
+      if (state.valid) {
+        drawRod(p2, r1, '#8b5cf6', 5);
+        drawRod(p3, r1, '#ec4899', 5);
+        const dirB = rodDir(state.theta);
+        const dirA = rodDir(state.angleA);
+        const vC = { x: r1.x - p2.x, y: r1.y - p2.y };
+        const vD = { x: r1.x - p3.x, y: r1.y - p3.y };
+        drawRightAngle(p2, dirB, vC);
+        drawRightAngle(p3, dirA, vD);
+        drawAngleArc(p2, p3, r1, state.currentCdAngle);
+        drawBADCOutline(p2, p1, p3, r1);
+      } else {
+        ctx.setLineDash([6, 6]);
+        const reachC = {
+          x: r1.x + state.lenC * (p2.x - r1.x) / Math.max(dist(p2, r1), 1e-6),
+          y: r1.y + state.lenC * (p2.y - r1.y) / Math.max(dist(p2, r1), 1e-6)
+        };
+        const reachD = {
+          x: r1.x + state.lenD * (p3.x - r1.x) / Math.max(dist(p3, r1), 1e-6),
+          y: r1.y + state.lenD * (p3.y - r1.y) / Math.max(dist(p3, r1), 1e-6)
+        };
+        drawRod(p2, reachC, 'rgba(139, 92, 246, 0.45)', 3);
+        drawRod(p3, reachD, 'rgba(236, 72, 153, 0.45)', 3);
+        ctx.setLineDash([]);
+      }
+
+      drawJoint(p1, 'p1', '#ef4444', 10);
+      if (state.valid) {
+        drawSliderJoint(p3, p1, aEnd, 'p3', '#fbbf24', true);
+        drawSliderJoint(p2, p1, bEnd, 'p2', '#22d3ee');
+        drawJoint(r1, 'r1', '#a78bfa', 8, false, true);
+      } else {
+        drawSliderJoint(p3, p1, aEnd, 'p3', '#fbbf24', true);
+      }
+      if (state.valid) drawJoint(bEnd, '', '#10b981', 6);
+
+      ctx.font = '500 11px Segoe UI, sans-serif';
+      ctx.fillStyle = '#8b9cb3';
+      ctx.textAlign = 'left';
+      const sa = toScreen(aEnd);
+      ctx.fillText(`A = ${state.lenA}`, sa.x + 8, sa.y - 8);
+      const sb = toScreen(bEnd);
+      ctx.fillText(`B = ${state.lenB}`, sb.x + 8, sb.y + 4);
+      if (state.valid) {
+        const sr = toScreen(r1);
+        ctx.fillText(`C = ${state.lenC}`, (toScreen(p2).x + sr.x) / 2, (toScreen(p2).y + sr.y) / 2 - 8);
+        ctx.fillText(`D = ${state.lenD}`, (toScreen(p3).x + sr.x) / 2, (toScreen(p3).y + sr.y) / 2 + 14);
+      }
+    }
+
+    function bindControls() {
+      const lengthPairs = [
+        ['len-a', 'val-a', v => { state.lenA = +v; return v; }],
+        ['len-b', 'val-b', v => { state.lenB = +v; return v; }],
+        ['len-c', 'val-c', v => { state.lenC = +v; return v; }],
+        ['len-d', 'val-d', v => { state.lenD = +v; return v; }]
+      ];
+
+      lengthPairs.forEach(([id, valId, fn]) => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => {
+          document.getElementById(valId).textContent = fn(el.value);
+          applyP3Control(state.tA);
+        });
+      });
+
+      document.getElementById('ta').addEventListener('input', e => {
+        const tA = +e.target.value / 100;
+        document.getElementById('val-ta').textContent = (+e.target.value).toFixed(0) + '%';
+        applyP3Control(tA);
+      });
+
+      document.getElementById('cd-min').addEventListener('input', e => {
+        state.cdAngleMin = +e.target.value;
+        if (state.cdAngleMin > state.cdAngleMax) {
+          state.cdAngleMax = state.cdAngleMin;
+          document.getElementById('cd-max').value = state.cdAngleMax;
+          document.getElementById('val-cd-max').textContent = state.cdAngleMax.toFixed(0);
+        }
+        document.getElementById('val-cd-min').textContent = state.cdAngleMin.toFixed(0);
+        applyP3Control(state.tA);
+      });
+
+      document.getElementById('cd-max').addEventListener('input', e => {
+        state.cdAngleMax = +e.target.value;
+        if (state.cdAngleMax < state.cdAngleMin) {
+          state.cdAngleMin = state.cdAngleMax;
+          document.getElementById('cd-min').value = state.cdAngleMin;
+          document.getElementById('val-cd-min').textContent = state.cdAngleMin.toFixed(0);
+        }
+        document.getElementById('val-cd-max').textContent = state.cdAngleMax.toFixed(0);
+        applyP3Control(state.tA);
+      });
+
+      document.getElementById('btn-play').addEventListener('click', () => {
+        state.playing = !state.playing;
+        document.getElementById('btn-play').textContent = state.playing ? '⏸ Pause' : '▶ Animate p3';
+        document.getElementById('btn-play').classList.toggle('primary', !state.playing);
+        if (state.playing) {
+          loopLast = performance.now();
+          queueFrame();
+        }
+      });
+
+      document.getElementById('btn-reset').addEventListener('click', () => {
+        state.lenA = 200; state.lenB = 160; state.lenC = 80; state.lenD = 100;
+        state.theta = Math.PI / 4; state.tA = 0.4; state.tB = 0.5;
+        state.r1 = { x: 150, y: 80 };
+        state.cdAngleMin = 0;
+        state.cdAngleMax = 180;
+        state.playing = false; state.valid = true; state.animT = 0;
+        document.getElementById('len-a').value = 200;
+        document.getElementById('len-b').value = 160;
+        document.getElementById('len-c').value = 80;
+        document.getElementById('len-d').value = 100;
+        document.getElementById('val-a').textContent = '200';
+        document.getElementById('val-b').textContent = '160';
+        document.getElementById('val-c').textContent = '80';
+        document.getElementById('val-d').textContent = '100';
+        document.getElementById('btn-play').textContent = '▶ Animate p3';
+        document.getElementById('btn-play').classList.add('primary');
+        syncCdSliders();
+        applyP3ControlNow(state.tA);
+      });
+    }
+
+    function hitTestJoint(screenPos, worldPoint, radius = 14) {
+      const s = toScreen(worldPoint);
+      return Math.hypot(screenPos.x - s.x, screenPos.y - s.y) <= radius;
+    }
+
+    function setupDrag() {
+      function startDrag(sp) {
+        const p3 = getP3();
+        if (hitTestJoint(sp, p3, 20)) {
+          state.drag = 'p3';
+          canvas.classList.add('dragging');
+        }
+      }
+
+      function moveDrag(sp) {
+        if (state.drag !== 'p3') return;
+        const wp = toWorld(sp);
+        const proj = projectOnSegment(getP1(), getAEnd(), wp);
+        applyP3Control(proj.t);
+      }
+
+      function endDrag() {
+        if (state.drag) canvas.classList.remove('dragging');
+        state.drag = null;
+      }
+
+      canvas.addEventListener('mousedown', e => {
+        const rect = canvas.getBoundingClientRect();
+        startDrag({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      });
+
+      window.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        moveDrag({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      });
+
+      window.addEventListener('mouseup', endDrag);
+
+      canvas.addEventListener('touchstart', e => {
+        e.preventDefault();
+        const t = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        startDrag({ x: t.clientX - rect.left, y: t.clientY - rect.top });
+      }, { passive: false });
+
+      window.addEventListener('touchmove', e => {
+        if (state.drag !== 'p3') return;
+        e.preventDefault();
+        const t = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        moveDrag({ x: t.clientX - rect.left, y: t.clientY - rect.top });
+      }, { passive: false });
+
+      window.addEventListener('touchend', endDrag);
+    }
+
+    window.addEventListener('resize', () => { resize(); draw(); });
+    bindControls();
+    setupDrag();
+    resize();
+    initMechanism();
+    draw();
+    loopLast = performance.now();
+    requestAnimationFrame(runFrame);
+  </script>
+</body>
+</html>
